@@ -1,0 +1,591 @@
+<!doctype html> 
+<html lang="en"> 
+<head> 
+	<meta charset="UTF-8" />
+	<title>Phaser - Under the sea</title>
+	<script type="text/javascript" src="js/phaser.min.js"></script>
+	<script src="js/jquery-2.1.4.min.js"></script>
+    <style type="text/css" src="index.css"></style>
+</head>
+<body>
+<h1>DES BUBULLES !</h1>
+<img src="assets/desBubules.gif"> 
+<script type="text/javascript">
+//-16 to fit with the margin
+var gameWidth = $(window).width()-16;
+var gameHeight = $(window).height()-16;
+//if to fit with the bacground
+if(gameHeight > 700){
+	gameHeight = 700;
+}
+
+
+var GameState = function(game) {
+    this.MAX_BUBBLE = 300; // number of Bubble
+};
+
+GameState.prototype.preload = function() {
+
+	game.load.image('background', 'assets/ocean.jpg');	
+	game.load.image('bubble1', 'assets/bulle1.png');	
+	game.load.image('bubble2', 'assets/bulle2.png');	
+	game.load.image('bubble3', 'assets/bulle3.png');
+	game.load.image('bubble4', 'assets/bulle4.png');	
+	game.load.image('bubble5', 'assets/bulle5.png');
+	game.load.image('bubble6', 'assets/bulle6.png');	
+	game.load.image('bubble7', 'assets/bulle7.png');
+	game.load.image('bubble8', 'assets/bulle8.png');	
+	game.load.image('bubble9', 'assets/bulle9.png');
+	game.load.image('bubble10', 'assets/bulle10.png');	
+	game.load.image('bubble11', 'assets/bulle11.png');
+	game.load.spritesheet('fish', 'assets/magicarpe.png', 36, 36);
+
+
+}
+
+var fish;
+var cursors;
+
+GameState.prototype.create = function() {
+
+var background = this.game.add.sprite(0, 0, "background");
+	background.anchor.setTo(0.5, 0.5);
+var backgroundScaleWidth = 4000 / background.texture.frame.width;
+var backgroundScaleHeight = backgroundScaleWidth/16 * 9;
+	background.scale.setTo(backgroundScaleWidth, backgroundScaleHeight);
+
+	this.bubbleGroup = this.game.add.group();
+
+	// Simulate a pointer click/tap input at the center of the stage
+    // when the game begins running.
+    this.game.input.activePointer.x = this.game.width/2;
+    this.game.input.activePointer.y = this.game.height/2 - 100;
+
+
+    // The player and its settings
+    fish = game.add.sprite(32, game.world.height - 150, 'fish');
+
+    //  We need to enable physics on the player
+    game.physics.arcade.enable(fish);
+
+    //  Player physics properties. Give the little guy a slight bounce.
+    fish.body.bounce.y = 0.2;
+    fish.body.gravity.y = 0;
+    fish.body.collideWorldBounds = true;
+
+
+    //  Our animations
+    fish.animations.add('upleft', [0, 1 , 2], 10, true);
+    fish.animations.add('downleft', [3, 4 , 5], 10, true);
+    fish.animations.add('left', [6, 7, 8], 10, true);
+    fish.animations.add('upright', [20, 19 , 18], 10, true);
+    fish.animations.add('downright', [17, 16 , 15], 10, true);
+    fish.animations.add('right', [14, 13, 12], 10, true);
+    fish.animations.add('wait', [9, 10, 11], 10, true);
+
+
+    //  Our controls.
+    cursors = game.input.keyboard.createCursorKeys();
+
+}
+
+GameState.prototype.update = function() {
+
+	 // If there are fewer than MAX_BUBBLE, launch a new one
+    if (this.bubbleGroup.countLiving() < this.MAX_BUBBLE) {
+        // Set the launch point to a random location below the bottom edge
+        // of the stage
+        this.launchBubble(this.game.rnd.integerInRange(50, this.game.width-50),
+            this.game.height + 50);
+    }
+
+     // If any bubble is reaching the top, blow it up
+    this.bubbleGroup.forEachAlive(function(b) {
+        var distance = this.game.math.distance(b.x, b.y,
+            b.x, -20);
+        if (distance < 50) {
+            b.kill();
+        }
+    }, this);
+
+    fish.body.velocity.x = 0;
+    fish.body.velocity.y = 0;
+
+    if (cursors.left.isDown)
+    {
+        //  Move to the left
+        fish.body.velocity.x = -150;
+
+        fish.animations.play('left');
+    }
+    else if (cursors.up.isDown)
+    {
+        //  Move to the right && up
+        fish.body.velocity.y = -150;
+
+        fish.animations.play('upleft');
+    }
+    else if (cursors.down.isDown)
+    {
+        //  Move to the right
+        fish.body.velocity.y = 150;
+
+        fish.animations.play('downright');
+    }
+    else if (cursors.right.isDown)
+    {
+        //  Move to the right
+        fish.body.velocity.x = 150;
+
+        fish.animations.play('right');
+    }
+    
+   /* else if ((cursors.right.isDown)&&(cursors.up.isDown))
+    {
+        //  Move to the right
+        fish.body.velocity.x = 150;
+        fish.body.velocity.y = 150;
+
+        fish.animations.play('upright');
+    }
+    else if ((cursors.right.isDown)&&(cursors.down.isDown))
+    {
+        //  Move to the right
+        fish.body.velocity.x = 150;
+        fish.body.velocity.y = -150;
+
+        fish.animations.play('downright');
+    }*/
+    else
+    {
+        //  Stand still
+        fish.animations.stop();
+
+        fish.frame = 10;
+    }
+    
+    //  Allow the player to jump if they are touching the ground.
+    if (cursors.up.isDown && fish.body.touching.down)
+    {
+        fish.body.velocity.y = -350;
+    }
+}
+
+// Try to get a bubble from the bubbleGroup
+// If a bubble isn't available, create a new one and add it to the group.
+GameState.prototype.launchBubble = function(x, y) {
+    // // Get the first dead bubble from the bubbleGroup
+    var bubble = this.bubbleGroup.getFirstDead();
+
+    // If there aren't any available, create a new one
+    if (bubble === null) {
+        bubble = new Bubble(this.game);
+        this.bubbleGroup.add(bubble);
+    }
+
+    // Revive the bubble (set it's alive property to true)
+    // You can also define a onRevived event handler in your explosion objects
+    // to do stuff when they are revived.
+    bubble.revive();
+
+    // Move the bubble to the given coordinates
+    bubble.x = x;
+    bubble.y = y;
+
+    return bubble;
+};
+
+// Bubble constructor
+var Bubble = function(game, x, y) {
+
+	//pick a random bubble 
+	//11 bubble avalable so 11 -1 in rand function
+	var randomBubble = Math.round(Math.random() * (10))
+	
+	if(randomBubble == 0){
+
+    Phaser.Sprite.call(this, game, x, y, 'bubble1');
+
+    // Set the pivot point for this sprite to the center
+    this.anchor.setTo(0.5, 0.5);
+
+    // Enable physics on the bubble
+    this.game.physics.enable(this, Phaser.Physics.ARCADE);
+
+    // Define constants that affect motion
+    this.SPEED = 50; // missile speed pixels/second
+    this.TURN_RATE = 5; // turn rate in degrees/frame
+    this.WOBBLE_LIMIT = 15; // degrees
+    this.WOBBLE_SPEED = 250; // milliseconds
+    this.SMOKE_LIFETIME = 3000; // milliseconds
+
+    // Create a variable called wobble that tweens back and forth between
+    // -this.WOBBLE_LIMIT and +this.WOBBLE_LIMIT forever
+    this.wobble = this.WOBBLE_LIMIT;
+    this.game.add.tween(this)
+        .to(
+            { wobble: -this.WOBBLE_LIMIT },
+            this.WOBBLE_SPEED, Phaser.Easing.Sinusoidal.InOut, true, 0,
+            Number.POSITIVE_INFINITY, true
+        );
+    }
+
+    if(randomBubble == 1){
+
+    Phaser.Sprite.call(this, game, x, y, 'bubble2');
+
+    // Set the pivot point for this sprite to the center
+    this.anchor.setTo(0.5, 0.5);
+
+    // Enable physics on the bubble
+    this.game.physics.enable(this, Phaser.Physics.ARCADE);
+
+    // Define constants that affect motion
+    this.SPEED = 55; // missile speed pixels/second
+    this.TURN_RATE = 5; // turn rate in degrees/frame
+    this.WOBBLE_LIMIT = 15; // degrees
+    this.WOBBLE_SPEED = 250; // milliseconds
+    this.SMOKE_LIFETIME = 3000; // milliseconds
+
+    // Create a variable called wobble that tweens back and forth between
+    // -this.WOBBLE_LIMIT and +this.WOBBLE_LIMIT forever
+    this.wobble = this.WOBBLE_LIMIT;
+    this.game.add.tween(this)
+        .to(
+            { wobble: -this.WOBBLE_LIMIT },
+            this.WOBBLE_SPEED, Phaser.Easing.Sinusoidal.InOut, true, 0,
+            Number.POSITIVE_INFINITY, true
+        );
+    }
+
+    if(randomBubble == 2){
+
+    Phaser.Sprite.call(this, game, x, y, 'bubble3');
+
+    // Set the pivot point for this sprite to the center
+    this.anchor.setTo(0.5, 0.5);
+
+    // Enable physics on the bubble
+    this.game.physics.enable(this, Phaser.Physics.ARCADE);
+
+    // Define constants that affect motion
+    this.SPEED = 60; // missile speed pixels/second
+    this.TURN_RATE = 5; // turn rate in degrees/frame
+    this.WOBBLE_LIMIT = 15; // degrees
+    this.WOBBLE_SPEED = 250; // milliseconds
+    this.SMOKE_LIFETIME = 3000; // milliseconds
+
+    // Create a variable called wobble that tweens back and forth between
+    // -this.WOBBLE_LIMIT and +this.WOBBLE_LIMIT forever
+    this.wobble = this.WOBBLE_LIMIT;
+    this.game.add.tween(this)
+        .to(
+            { wobble: -this.WOBBLE_LIMIT },
+            this.WOBBLE_SPEED, Phaser.Easing.Sinusoidal.InOut, true, 0,
+            Number.POSITIVE_INFINITY, true
+        );
+    }
+
+    if(randomBubble == 3){
+
+    Phaser.Sprite.call(this, game, x, y, 'bubble4');
+
+    // Set the pivot point for this sprite to the center
+    this.anchor.setTo(0.5, 0.5);
+
+    // Enable physics on the bubble
+    this.game.physics.enable(this, Phaser.Physics.ARCADE);
+
+    // Define constants that affect motion
+    this.SPEED = 65; // missile speed pixels/second
+    this.TURN_RATE = 5; // turn rate in degrees/frame
+    this.WOBBLE_LIMIT = 15; // degrees
+    this.WOBBLE_SPEED = 250; // milliseconds
+    this.SMOKE_LIFETIME = 3000; // milliseconds
+
+    // Create a variable called wobble that tweens back and forth between
+    // -this.WOBBLE_LIMIT and +this.WOBBLE_LIMIT forever
+    this.wobble = this.WOBBLE_LIMIT;
+    this.game.add.tween(this)
+        .to(
+            { wobble: -this.WOBBLE_LIMIT },
+            this.WOBBLE_SPEED, Phaser.Easing.Sinusoidal.InOut, true, 0,
+            Number.POSITIVE_INFINITY, true
+        );
+    }
+
+    if(randomBubble == 4){
+
+    Phaser.Sprite.call(this, game, x, y, 'bubble5');
+
+    // Set the pivot point for this sprite to the center
+    this.anchor.setTo(0.5, 0.5);
+
+    // Enable physics on the bubble
+    this.game.physics.enable(this, Phaser.Physics.ARCADE);
+
+    // Define constants that affect motion
+    this.SPEED = 70; // missile speed pixels/second
+    this.TURN_RATE = 5; // turn rate in degrees/frame
+    this.WOBBLE_LIMIT = 15; // degrees
+    this.WOBBLE_SPEED = 250; // milliseconds
+    this.SMOKE_LIFETIME = 3000; // milliseconds
+
+    // Create a variable called wobble that tweens back and forth between
+    // -this.WOBBLE_LIMIT and +this.WOBBLE_LIMIT forever
+    this.wobble = this.WOBBLE_LIMIT;
+    this.game.add.tween(this)
+        .to(
+            { wobble: -this.WOBBLE_LIMIT },
+            this.WOBBLE_SPEED, Phaser.Easing.Sinusoidal.InOut, true, 0,
+            Number.POSITIVE_INFINITY, true
+        );
+    }
+
+    if(randomBubble == 5){
+
+    Phaser.Sprite.call(this, game, x, y, 'bubble5');
+
+    // Set the pivot point for this sprite to the center
+    this.anchor.setTo(0.5, 0.5);
+
+    // Enable physics on the bubble
+    this.game.physics.enable(this, Phaser.Physics.ARCADE);
+
+    // Define constants that affect motion
+    this.SPEED = 75; // missile speed pixels/second
+    this.TURN_RATE = 5; // turn rate in degrees/frame
+    this.WOBBLE_LIMIT = 15; // degrees
+    this.WOBBLE_SPEED = 250; // milliseconds
+    this.SMOKE_LIFETIME = 3000; // milliseconds
+
+    // Create a variable called wobble that tweens back and forth between
+    // -this.WOBBLE_LIMIT and +this.WOBBLE_LIMIT forever
+    this.wobble = this.WOBBLE_LIMIT;
+    this.game.add.tween(this)
+        .to(
+            { wobble: -this.WOBBLE_LIMIT },
+            this.WOBBLE_SPEED, Phaser.Easing.Sinusoidal.InOut, true, 0,
+            Number.POSITIVE_INFINITY, true
+        );
+    }
+
+    if(randomBubble == 6){
+
+    Phaser.Sprite.call(this, game, x, y, 'bubble5');
+
+    // Set the pivot point for this sprite to the center
+    this.anchor.setTo(0.5, 0.5);
+
+    // Enable physics on the bubble
+    this.game.physics.enable(this, Phaser.Physics.ARCADE);
+
+    // Define constants that affect motion
+    this.SPEED = 80; // missile speed pixels/second
+    this.TURN_RATE = 5; // turn rate in degrees/frame
+    this.WOBBLE_LIMIT = 15; // degrees
+    this.WOBBLE_SPEED = 250; // milliseconds
+    this.SMOKE_LIFETIME = 3000; // milliseconds
+
+    // Create a variable called wobble that tweens back and forth between
+    // -this.WOBBLE_LIMIT and +this.WOBBLE_LIMIT forever
+    this.wobble = this.WOBBLE_LIMIT;
+    this.game.add.tween(this)
+        .to(
+            { wobble: -this.WOBBLE_LIMIT },
+            this.WOBBLE_SPEED, Phaser.Easing.Sinusoidal.InOut, true, 0,
+            Number.POSITIVE_INFINITY, true
+        );
+    }
+
+    if(randomBubble == 7){
+
+    Phaser.Sprite.call(this, game, x, y, 'bubble5');
+
+    // Set the pivot point for this sprite to the center
+    this.anchor.setTo(0.5, 0.5);
+
+    // Enable physics on the bubble
+    this.game.physics.enable(this, Phaser.Physics.ARCADE);
+
+    // Define constants that affect motion
+    this.SPEED = 85; // missile speed pixels/second
+    this.TURN_RATE = 5; // turn rate in degrees/frame
+    this.WOBBLE_LIMIT = 15; // degrees
+    this.WOBBLE_SPEED = 250; // milliseconds
+    this.SMOKE_LIFETIME = 3000; // milliseconds
+
+    // Create a variable called wobble that tweens back and forth between
+    // -this.WOBBLE_LIMIT and +this.WOBBLE_LIMIT forever
+    this.wobble = this.WOBBLE_LIMIT;
+    this.game.add.tween(this)
+        .to(
+            { wobble: -this.WOBBLE_LIMIT },
+            this.WOBBLE_SPEED, Phaser.Easing.Sinusoidal.InOut, true, 0,
+            Number.POSITIVE_INFINITY, true
+        );
+    }
+
+    if(randomBubble == 8){
+
+    Phaser.Sprite.call(this, game, x, y, 'bubble5');
+
+    // Set the pivot point for this sprite to the center
+    this.anchor.setTo(0.5, 0.5);
+
+    // Enable physics on the bubble
+    this.game.physics.enable(this, Phaser.Physics.ARCADE);
+
+    // Define constants that affect motion
+    this.SPEED = 90; // missile speed pixels/second
+    this.TURN_RATE = 5; // turn rate in degrees/frame
+    this.WOBBLE_LIMIT = 15; // degrees
+    this.WOBBLE_SPEED = 250; // milliseconds
+    this.SMOKE_LIFETIME = 3000; // milliseconds
+
+    // Create a variable called wobble that tweens back and forth between
+    // -this.WOBBLE_LIMIT and +this.WOBBLE_LIMIT forever
+    this.wobble = this.WOBBLE_LIMIT;
+    this.game.add.tween(this)
+        .to(
+            { wobble: -this.WOBBLE_LIMIT },
+            this.WOBBLE_SPEED, Phaser.Easing.Sinusoidal.InOut, true, 0,
+            Number.POSITIVE_INFINITY, true
+        );
+    }
+
+    if(randomBubble == 9){
+
+    Phaser.Sprite.call(this, game, x, y, 'bubble5');
+
+    // Set the pivot point for this sprite to the center
+    this.anchor.setTo(0.5, 0.5);
+
+    // Enable physics on the bubble
+    this.game.physics.enable(this, Phaser.Physics.ARCADE);
+
+    // Define constants that affect motion
+    this.SPEED = 95; // missile speed pixels/second
+    this.TURN_RATE = 5; // turn rate in degrees/frame
+    this.WOBBLE_LIMIT = 15; // degrees
+    this.WOBBLE_SPEED = 250; // milliseconds
+    this.SMOKE_LIFETIME = 3000; // milliseconds
+
+    // Create a variable called wobble that tweens back and forth between
+    // -this.WOBBLE_LIMIT and +this.WOBBLE_LIMIT forever
+    this.wobble = this.WOBBLE_LIMIT;
+    this.game.add.tween(this)
+        .to(
+            { wobble: -this.WOBBLE_LIMIT },
+            this.WOBBLE_SPEED, Phaser.Easing.Sinusoidal.InOut, true, 0,
+            Number.POSITIVE_INFINITY, true
+        );
+    }
+
+    if(randomBubble == 10){
+
+    Phaser.Sprite.call(this, game, x, y, 'bubble5');
+
+    // Set the pivot point for this sprite to the center
+    this.anchor.setTo(0.5, 0.5);
+
+    // Enable physics on the bubble
+    this.game.physics.enable(this, Phaser.Physics.ARCADE);
+
+    // Define constants that affect motion
+    this.SPEED = 100; // missile speed pixels/second
+    this.TURN_RATE = 5; // turn rate in degrees/frame
+    this.WOBBLE_LIMIT = 15; // degrees
+    this.WOBBLE_SPEED = 250; // milliseconds
+    this.SMOKE_LIFETIME = 3000; // milliseconds
+
+    // Create a variable called wobble that tweens back and forth between
+    // -this.WOBBLE_LIMIT and +this.WOBBLE_LIMIT forever
+    this.wobble = this.WOBBLE_LIMIT;
+    this.game.add.tween(this)
+        .to(
+            { wobble: -this.WOBBLE_LIMIT },
+            this.WOBBLE_SPEED, Phaser.Easing.Sinusoidal.InOut, true, 0,
+            Number.POSITIVE_INFINITY, true
+        );
+    }
+
+    if(randomBubble == 11){
+
+    Phaser.Sprite.call(this, game, x, y, 'bubble5');
+
+    // Set the pivot point for this sprite to the center
+    this.anchor.setTo(0.5, 0.5);
+
+    // Enable physics on the bubble
+    this.game.physics.enable(this, Phaser.Physics.ARCADE);
+
+    // Define constants that affect motion
+    this.SPEED = 105; // missile speed pixels/second
+    this.TURN_RATE = 5; // turn rate in degrees/frame
+    this.WOBBLE_LIMIT = 15; // degrees
+    this.WOBBLE_SPEED = 250; // milliseconds
+    this.SMOKE_LIFETIME = 3000; // milliseconds
+
+    // Create a variable called wobble that tweens back and forth between
+    // -this.WOBBLE_LIMIT and +this.WOBBLE_LIMIT forever
+    this.wobble = this.WOBBLE_LIMIT;
+    this.game.add.tween(this)
+        .to(
+            { wobble: -this.WOBBLE_LIMIT },
+            this.WOBBLE_SPEED, Phaser.Easing.Sinusoidal.InOut, true, 0,
+            Number.POSITIVE_INFINITY, true
+        );
+    }
+
+};
+
+// Bubble are a type of Phaser.Sprite
+Bubble.prototype = Object.create(Phaser.Sprite.prototype);
+Bubble.prototype.constructor = Bubble;
+
+Bubble.prototype.update = function() {
+    // target coordinates of the bubble
+    var targetAngle = this.game.math.angleBetween(
+        this.x, this.y,this.x,0
+    );
+
+    // Add our "wobble" factor to the targetAngle to make the Bubble wobble
+    // Remember that this.wobble is tweening (above)
+    targetAngle += this.game.math.degToRad(this.wobble);
+
+    // Gradually (this.TURN_RATE) aim the missile towards the target angle
+    if (this.rotation !== targetAngle) {
+        // Calculate difference between the current angle and targetAngle
+        var delta = targetAngle - this.rotation;
+
+        // Keep it in range from -180 to 180 to make the most efficient turns.
+        if (delta > Math.PI) delta -= Math.PI * 2;
+        if (delta < -Math.PI) delta += Math.PI * 2;
+
+        if (delta > 0) {
+            // Turn clockwise
+            this.angle += this.TURN_RATE;
+        } else {
+            // Turn counter-clockwise
+            this.angle -= this.TURN_RATE;
+        }
+
+        // Just set angle to target angle if they are close
+        if (Math.abs(delta) < this.game.math.degToRad(this.TURN_RATE)) {
+            this.rotation = targetAngle;
+        }
+    }
+
+    // Calculate velocity vector based on this.rotation and this.SPEED
+    this.body.velocity.x = Math.cos(this.rotation) * this.SPEED;
+    this.body.velocity.y = Math.sin(this.rotation) * this.SPEED;
+};
+
+var game = new Phaser.Game(gameWidth, gameHeight, Phaser.AUTO, 'game');
+game.state.add('game', GameState, true);
+
+</script>
+
+</body>
+</html>

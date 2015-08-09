@@ -41,3 +41,7 @@ $RECYCLE.BIN/
 Network Trash Folder
 Temporary Items
 .apdisk
+assets/gfx/ball.png
+assets/gfx/smoke.svg
+*.svg
+assets/gfx/explosion.png
